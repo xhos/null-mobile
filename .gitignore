@@ -1,3 +1,4 @@
+# standard kotlin stuff
 *.iml
 .gradle
 /local.properties
@@ -13,3 +14,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# nix stuff and caches it re-routes
+.direnv/
+.gradle-home/
+

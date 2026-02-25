@@ -8,6 +8,17 @@ lifecycleRuntimeKtx = "2.6.1"
 activityCompose = "1.8.0"
 kotlin = "2.0.21"
 composeBom = "2024.09.00"
+connectKotlin = "0.7.4"
+okhttp = "4.12.0"
+protobufJava = "4.33.5"
+protobufKotlin = "4.33.5"
+protoGoogleCommonProtos = "2.49.0"
+protovalidate = "0.14.0"
+navigationCompose = "2.8.4"
+securityCrypto = "1.1.0-alpha06"
+coroutines = "1.9.0"
+lifecycleViewmodelCompose = "2.8.7"
+coilCompose = "2.7.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -26,7 +37,33 @@ androidx-compose-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-te
 androidx-compose-material3 = { group = "androidx.compose.material3", name = "material3" }
 androidx-compose-material3-adaptive-navigation-suite = { group = "androidx.compose.material3", name = "material3-adaptive-navigation-suite" }
 
+# Connect-RPC + networking
+connect-kotlin = { group = "com.connectrpc", name = "connect-kotlin", version.ref = "connectKotlin" }
+connect-kotlin-okhttp = { group = "com.connectrpc", name = "connect-kotlin-okhttp", version.ref = "connectKotlin" }
+connect-kotlin-google-java-ext = { group = "com.connectrpc", name = "connect-kotlin-google-java-ext", version.ref = "connectKotlin" }
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+
+# Protobuf runtime
+protobuf-java = { group = "com.google.protobuf", name = "protobuf-java", version.ref = "protobufJava" }
+protobuf-kotlin = { group = "com.google.protobuf", name = "protobuf-kotlin", version.ref = "protobufKotlin" }
+proto-google-common-protos = { group = "com.google.api.grpc", name = "proto-google-common-protos", version.ref = "protoGoogleCommonProtos" }
+protovalidate = { group = "build.buf", name = "protovalidate", version.ref = "protovalidate" }
+
+# Navigation
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+
+# Security
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
+
+# Coroutines
+kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-android", version.ref = "coroutines" }
+
+# Lifecycle
+androidx-lifecycle-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+
+# Image loading
+coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilCompose" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-

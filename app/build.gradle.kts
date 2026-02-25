@@ -9,6 +9,7 @@ android {
         version = release(36)
     }
 
+
     defaultConfig {
         applicationId = "dev.xhos.null_mobile"
         minSdk = 36
@@ -47,6 +48,37 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.adaptive.navigation.suite)
+
+    // Connect-RPC + networking
+    implementation(libs.connect.kotlin)
+    implementation(libs.connect.kotlin.okhttp)
+    implementation(libs.connect.kotlin.google.java.ext)
+    implementation(libs.okhttp)
+
+    // Protobuf runtime
+    implementation(libs.protobuf.java)
+    implementation(libs.protobuf.kotlin)
+    implementation(libs.proto.google.common.protos)
+    implementation(libs.protovalidate) {
+        exclude(group = "com.google.code.findbugs", module = "annotations")
+        exclude(group = "net.jcip", module = "jcip-annotations")
+    }
+
+    // Navigation
+    implementation(libs.androidx.navigation.compose)
+
+    // Security (EncryptedSharedPreferences)
+    implementation(libs.androidx.security.crypto)
+
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Lifecycle ViewModel Compose
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+
+    // Image loading (for later)
+    implementation(libs.coil.compose)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

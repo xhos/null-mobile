@@ -1,0 +1,26 @@
+version: v2
+
+inputs:
+  - directory: proto
+
+managed:
+  enabled: true
+  override:
+    - file_option: java_package
+      module: buf.build/xhos/null-protos
+      value: dev.xhos.null_mobile.proto
+    - file_option: java_package
+      module: buf.build/bufbuild/protovalidate
+      value: build.buf.validate
+    - file_option: java_package
+      module: buf.build/googleapis/googleapis
+      path: google/type
+      value: com.google.type
+
+plugins:
+  - remote: buf.build/protocolbuffers/java
+    out: app/src/main/java
+  - remote: buf.build/protocolbuffers/kotlin
+    out: app/src/main/java
+  - remote: buf.build/connectrpc/kotlin
+    out: app/src/main/java

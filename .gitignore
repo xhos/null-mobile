@@ -8,6 +8,7 @@
 /.idea/workspace.xml
 /.idea/navEditor.xml
 /.idea/assetWizardSettings.xml
+/.idea/deploymentTargetSelector.xml
 .DS_Store
 /build
 /captures
@@ -15,7 +16,8 @@
 .cxx
 local.properties
 
-# nix stuff and caches it re-routes
+# nix
 .direnv/
-.gradle-home/
 
+# protobuf generated code
+app/src/main/java/dev/xhos/null_mobile/proto/

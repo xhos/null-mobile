@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import android.util.Base64
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
@@ -42,6 +43,26 @@ class AuthManager(context: Context, private val serverConfig: ServerConfig) {
     var email: String?
         get() = prefs.getString(KEY_EMAIL, null)
         private set(value) = prefs.edit().putString(KEY_EMAIL, value).apply()
+
+    val userId: String?
+        get() {
+            prefs.getString(KEY_USER_ID, null)?.let { return it }
+            return extractUserIdFromJwt()?.also {
+                prefs.edit().putString(KEY_USER_ID, it).apply()
+            }
+        }
+
+    private fun extractUserIdFromJwt(): String? {
+        val token = jwt ?: return null
+        return try {
+            val parts = token.split(".")
+            if (parts.size != 3) return null
+            val payload = String(Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_PADDING))
+            JSONObject(payload).getString("sub")
+        } catch (_: Exception) {
+            null
+        }
+    }
 
     fun isAuthenticated(): Boolean = sessionToken != null
 
@@ -144,11 +165,13 @@ class AuthManager(context: Context, private val serverConfig: ServerConfig) {
         sessionToken = null
         jwt = null
         email = null
+        prefs.edit().remove(KEY_USER_ID).apply()
     }
 
     companion object {
         private const val KEY_SESSION_TOKEN = "session_token"
         private const val KEY_JWT = "jwt"
         private const val KEY_EMAIL = "email"
+        private const val KEY_USER_ID = "user_id"
     }
 }

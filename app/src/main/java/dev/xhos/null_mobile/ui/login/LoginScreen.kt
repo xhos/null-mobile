@@ -138,22 +138,12 @@ fun LoginScreen(
         AnimatedVisibility(visible = viewModel.showServerConfig) {
             Column(modifier = Modifier.padding(top = 8.dp)) {
                 NullTextField(
-                    value = viewModel.webUrl,
-                    onValueChange = { viewModel.webUrl = it },
-                    label = "web url",
+                    value = viewModel.gatewayUrl,
+                    onValueChange = { viewModel.gatewayUrl = it },
+                    label = "gateway url",
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Uri,
-                        imeAction = ImeAction.Next,
-                    ),
-                )
-                Spacer(Modifier.height(12.dp))
-                NullTextField(
-                    value = viewModel.coreUrl,
-                    onValueChange = { viewModel.coreUrl = it },
-                    label = "core url",
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Uri,
-                        imeAction = ImeAction.Next,
+                        imeAction = ImeAction.Done,
                     ),
                 )
                 Spacer(Modifier.height(16.dp))

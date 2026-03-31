@@ -4,10 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import android.util.Base64
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -30,77 +27,73 @@ class AuthManager(context: Context, private val serverConfig: ServerConfig) {
     )
 
     private val httpClient = OkHttpClient.Builder().build()
-    private val refreshMutex = Mutex()
 
     var sessionToken: String?
         get() = prefs.getString(KEY_SESSION_TOKEN, null)
         private set(value) = prefs.edit().putString(KEY_SESSION_TOKEN, value).apply()
 
-    var jwt: String?
-        get() = prefs.getString(KEY_JWT, null)
-        private set(value) = prefs.edit().putString(KEY_JWT, value).apply()
+    var sessionCookieName: String?
+        get() = prefs.getString(KEY_SESSION_COOKIE_NAME, null)
+        private set(value) = prefs.edit().putString(KEY_SESSION_COOKIE_NAME, value).apply()
 
     var email: String?
         get() = prefs.getString(KEY_EMAIL, null)
         private set(value) = prefs.edit().putString(KEY_EMAIL, value).apply()
 
     val userId: String?
-        get() {
-            prefs.getString(KEY_USER_ID, null)?.let { return it }
-            return extractUserIdFromJwt()?.also {
-                prefs.edit().putString(KEY_USER_ID, it).apply()
-            }
-        }
-
-    private fun extractUserIdFromJwt(): String? {
-        val token = jwt ?: return null
-        return try {
-            val parts = token.split(".")
-            if (parts.size != 3) return null
-            val payload = String(Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_PADDING))
-            JSONObject(payload).getString("sub")
-        } catch (_: Exception) {
-            null
-        }
-    }
+        get() = prefs.getString(KEY_USER_ID, null)
 
     fun isAuthenticated(): Boolean = sessionToken != null
 
-    suspend fun signIn(email: String, password: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun signIn(emailInput: String, password: String): Result<Unit> = withContext(Dispatchers.IO) {
         try {
             val json = JSONObject().apply {
-                put("email", email)
+                put("email", emailInput)
                 put("password", password)
             }
             val request = Request.Builder()
-                .url("${serverConfig.webUrl}/api/auth/sign-in/email")
+                .url("${serverConfig.gatewayUrl}/api/auth/sign-in/email")
                 .post(json.toString().toRequestBody("application/json".toMediaType()))
                 .build()
 
             val response = httpClient.newCall(request).execute()
+            val responseBody = response.body?.string() ?: ""
+
             if (!response.isSuccessful) {
-                val body = response.body?.string() ?: "Unknown error"
-                return@withContext Result.failure(Exception("Sign-in failed (${response.code}): $body"))
+                return@withContext Result.failure(Exception("Sign-in failed (${response.code}): $responseBody"))
             }
 
-            // Extract session token from set-cookie header
             val cookies = response.headers("set-cookie")
-            val sessionCookie = cookies.firstOrNull { it.startsWith("better-auth.session_token=") }
-                ?: cookies.firstOrNull { it.startsWith("session_token=") }
 
-            val token = sessionCookie
-                ?.substringAfter("=")
-                ?.substringBefore(";")
-
-            if (token.isNullOrBlank()) {
-                return@withContext Result.failure(Exception("No session token in response"))
+            var cookieName: String? = null
+            var cookieValue: String? = null
+            for (cookie in cookies) {
+                val nameValue = cookie.substringBefore(";")
+                val name = nameValue.substringBefore("=")
+                if (name.endsWith("session_token")) {
+                    cookieName = name
+                    cookieValue = nameValue.substringAfter("=")
+                    break
+                }
             }
 
-            sessionToken = token
-            this@AuthManager.email = email
+            if (cookieName == null || cookieValue.isNullOrBlank()) {
+                return@withContext Result.failure(Exception("No session cookie in response"))
+            }
 
-            // Fetch JWT
-            getToken().getOrThrow()
+            sessionToken = cookieValue
+            sessionCookieName = cookieName
+            email = emailInput
+
+            val responseJson = runCatching { JSONObject(responseBody) }.getOrNull()
+            val bodyUserId = responseJson?.optJSONObject("user")?.optString("id")
+                ?.takeIf { it.isNotBlank() }
+
+            if (bodyUserId != null) {
+                prefs.edit().putString(KEY_USER_ID, bodyUserId).apply()
+            } else {
+                fetchAndStoreUserId()
+            }
 
             Result.success(Unit)
         } catch (e: Exception) {
@@ -108,34 +101,19 @@ class AuthManager(context: Context, private val serverConfig: ServerConfig) {
         }
     }
 
-    suspend fun getToken(): Result<String> = withContext(Dispatchers.IO) {
-        try {
-            val session = sessionToken
-                ?: return@withContext Result.failure(Exception("Not authenticated"))
-
-            val request = Request.Builder()
-                .url("${serverConfig.webUrl}/api/auth/token")
-                .get()
-                .addHeader("Cookie", "better-auth.session_token=$session")
-                .build()
-
-            val response = httpClient.newCall(request).execute()
-            if (!response.isSuccessful) {
-                return@withContext Result.failure(Exception("Token fetch failed (${response.code})"))
+    private suspend fun fetchAndStoreUserId() {
+        val sessionResult = getSession()
+        sessionResult.getOrNull()?.let { sessionJson ->
+            val fetchedUserId = sessionJson.optJSONObject("user")?.optString("id")
+            if (!fetchedUserId.isNullOrBlank()) {
+                prefs.edit().putString(KEY_USER_ID, fetchedUserId).apply()
             }
-
-            val body = response.body?.string() ?: return@withContext Result.failure(Exception("Empty response"))
-            val tokenJson = JSONObject(body)
-            val token = tokenJson.getString("token")
-            jwt = token
-            Result.success(token)
-        } catch (e: Exception) {
-            Result.failure(e)
         }
     }
 
-    suspend fun refreshToken(): Result<String> = refreshMutex.withLock {
-        getToken()
+    fun buildSessionCookie(): String {
+        val name = sessionCookieName ?: "better-auth.session_token"
+        return "$name=$sessionToken"
     }
 
     suspend fun getSession(): Result<JSONObject> = withContext(Dispatchers.IO) {
@@ -144,9 +122,9 @@ class AuthManager(context: Context, private val serverConfig: ServerConfig) {
                 ?: return@withContext Result.failure(Exception("Not authenticated"))
 
             val request = Request.Builder()
-                .url("${serverConfig.webUrl}/api/auth/get-session")
+                .url("${serverConfig.gatewayUrl}/api/auth/get-session")
                 .get()
-                .addHeader("Cookie", "better-auth.session_token=$session")
+                .addHeader("Cookie", buildSessionCookie())
                 .build()
 
             val response = httpClient.newCall(request).execute()
@@ -154,23 +132,29 @@ class AuthManager(context: Context, private val serverConfig: ServerConfig) {
                 return@withContext Result.failure(Exception("Session check failed (${response.code})"))
             }
 
-            val body = response.body?.string() ?: return@withContext Result.failure(Exception("Empty response"))
+            val body = response.body?.string()
+                ?: return@withContext Result.failure(Exception("Empty response"))
             Result.success(JSONObject(body))
         } catch (e: Exception) {
             Result.failure(e)
         }
     }
 
+    fun refreshToken(): Result<String> =
+        Result.failure(Exception("Session expired — please sign in again"))
+
     fun logout() {
-        sessionToken = null
-        jwt = null
-        email = null
-        prefs.edit().remove(KEY_USER_ID).apply()
+        prefs.edit()
+            .remove(KEY_SESSION_TOKEN)
+            .remove(KEY_SESSION_COOKIE_NAME)
+            .remove(KEY_EMAIL)
+            .remove(KEY_USER_ID)
+            .apply()
     }
 
     companion object {
         private const val KEY_SESSION_TOKEN = "session_token"
-        private const val KEY_JWT = "jwt"
+        private const val KEY_SESSION_COOKIE_NAME = "session_cookie_name"
         private const val KEY_EMAIL = "email"
         private const val KEY_USER_ID = "user_id"
     }

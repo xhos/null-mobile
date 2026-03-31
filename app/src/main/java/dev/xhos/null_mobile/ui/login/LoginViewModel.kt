@@ -16,8 +16,7 @@ class LoginViewModel(
 
     var email by mutableStateOf("")
     var password by mutableStateOf("")
-    var webUrl by mutableStateOf(serverConfig.webUrl)
-    var coreUrl by mutableStateOf(serverConfig.coreUrl)
+    var gatewayUrl by mutableStateOf(serverConfig.gatewayUrl)
     var isLoading by mutableStateOf(false)
         private set
     var error by mutableStateOf<String?>(null)
@@ -32,9 +31,7 @@ class LoginViewModel(
             return
         }
 
-        // Save server URLs before login
-        serverConfig.webUrl = webUrl.trimEnd('/')
-        serverConfig.coreUrl = coreUrl.trimEnd('/')
+        serverConfig.gatewayUrl = gatewayUrl.trimEnd('/')
 
         viewModelScope.launch {
             isLoading = true

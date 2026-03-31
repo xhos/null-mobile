@@ -1,6 +1,7 @@
 package dev.xhos.null_mobile.ui.transactions
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -47,6 +48,7 @@ import java.util.Locale
 @Composable
 fun TransactionListScreen(
     viewModel: TransactionListViewModel,
+    onTransactionClick: (Long) -> Unit = {},
 ) {
     LaunchedEffect(Unit) {
         if (viewModel.transactions.isEmpty() && !viewModel.isLoading) {
@@ -105,6 +107,7 @@ fun TransactionListScreen(
                 transactions = viewModel.transactions,
                 isLoadingMore = viewModel.isLoadingMore,
                 listState = listState,
+                onTransactionClick = onTransactionClick,
             )
         }
     }
@@ -115,6 +118,7 @@ private fun TransactionList(
     transactions: List<Transaction>,
     isLoadingMore: Boolean,
     listState: androidx.compose.foundation.lazy.LazyListState,
+    onTransactionClick: (Long) -> Unit,
 ) {
     val isDark = isSystemInDarkTheme()
     val incomingColor = if (isDark) ColorSuccessDark else ColorSuccess
@@ -143,7 +147,11 @@ private fun TransactionList(
             }
 
             item(key = tx.id) {
-                TransactionRow(tx = tx, incomingColor = incomingColor)
+                TransactionRow(
+                    tx = tx,
+                    incomingColor = incomingColor,
+                    onClick = { onTransactionClick(tx.id) },
+                )
                 HorizontalDivider(
                     color = MaterialTheme.colorScheme.outline,
                     thickness = 0.5.dp,
@@ -172,13 +180,14 @@ private fun TransactionList(
 }
 
 @Composable
-private fun TransactionRow(tx: Transaction, incomingColor: Color) {
+private fun TransactionRow(tx: Transaction, incomingColor: Color, onClick: () -> Unit) {
     val isIncoming = tx.direction == TransactionDirection.DIRECTION_INCOMING
     val amountColor = if (isIncoming) incomingColor else MaterialTheme.colorScheme.onBackground
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.Top,

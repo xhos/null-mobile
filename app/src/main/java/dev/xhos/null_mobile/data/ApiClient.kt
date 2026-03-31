@@ -1,7 +1,7 @@
 package dev.xhos.null_mobile.data
 
 import com.connectrpc.ProtocolClientConfig
-import com.connectrpc.extensions.GoogleJavaProtobufStrategy
+import com.connectrpc.extensions.GoogleJavaJSONStrategy
 import com.connectrpc.impl.ProtocolClient
 import com.connectrpc.okhttp.ConnectOkHttpClient
 import okhttp3.Interceptor
@@ -12,12 +12,11 @@ class ApiClient(
     private val serverConfig: ServerConfig,
 ) {
 
-    private val authInterceptor = Interceptor { chain ->
+    private val sessionCookieInterceptor = Interceptor { chain ->
         val original = chain.request()
-        val token = authManager.jwt
-        val request = if (token != null) {
+        val request = if (authManager.sessionToken != null) {
             original.newBuilder()
-                .addHeader("Authorization", "Bearer $token")
+                .addHeader("Cookie", authManager.buildSessionCookie())
                 .build()
         } else {
             original
@@ -25,9 +24,18 @@ class ApiClient(
         chain.proceed(request)
     }
 
+    private val apiPathPrefixInterceptor = Interceptor { chain ->
+        val original = chain.request()
+        val prefixedUrl = original.url.newBuilder()
+            .encodedPath("/api" + original.url.encodedPath)
+            .build()
+        chain.proceed(original.newBuilder().url(prefixedUrl).build())
+    }
+
     private val okHttpClient: OkHttpClient by lazy {
         OkHttpClient.Builder()
-            .addInterceptor(authInterceptor)
+            .addInterceptor(apiPathPrefixInterceptor)
+            .addInterceptor(sessionCookieInterceptor)
             .build()
     }
 
@@ -35,8 +43,8 @@ class ApiClient(
         ProtocolClient(
             httpClient = ConnectOkHttpClient(okHttpClient),
             ProtocolClientConfig(
-                host = serverConfig.coreUrl,
-                serializationStrategy = GoogleJavaProtobufStrategy(),
+                host = serverConfig.gatewayUrl,
+                serializationStrategy = GoogleJavaJSONStrategy(),
             ),
         )
     }

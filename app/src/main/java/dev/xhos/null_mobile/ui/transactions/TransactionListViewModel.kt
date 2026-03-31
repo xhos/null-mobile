@@ -88,6 +88,11 @@ class TransactionListViewModel(
         }
     }
 
+    fun removeTransaction(id: Long) {
+        transactions = transactions.filter { it.id != id }
+        if (totalCount > 0) totalCount--
+    }
+
     fun refresh() {
         nextCursor = null
         hasMore = true

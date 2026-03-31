@@ -374,6 +374,8 @@ private fun AccountRow(
     account: Account,
     onClick: () -> Unit,
 ) {
+    val displayName = account.displayNameForSelection()
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -383,7 +385,7 @@ private fun AccountRow(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Text(
-            text = account.name.lowercase(),
+            text = displayName.lowercase(),
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onBackground,
         )
@@ -582,6 +584,19 @@ private fun AmountStep(viewModel: QuickAddViewModel) {
 
         Spacer(Modifier.height(16.dp))
     }
+}
+
+private fun Account.displayNameForSelection(): String {
+    if (hasFriendlyName() && friendlyName.isNotBlank()) {
+        return friendlyName
+    }
+
+    val firstAlias = aliasesList.firstOrNull { it.isNotBlank() }
+    if (firstAlias != null) {
+        return firstAlias
+    }
+
+    return name
 }
 
 @Composable

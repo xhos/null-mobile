@@ -26,7 +26,23 @@
     in
     {
       devShells.${system}.default = pkgs.mkShell {
-        buildInputs = with pkgs; [ jdk21 buf gradle ];
+        packages = with pkgs; [
+          (writeShellScriptBin "bump-protos" ''
+            git -C proto fetch origin
+            git -C proto checkout main
+            git -C proto pull --ff-only
+            git add proto
+            git commit -m "chore: bump proto files"
+            git push
+          '')
+          
+          (writeShellScriptBin "regen" ''
+            rm -rf app/src/main/java/dev/xhos/null_mobile/proto/
+            ${buf}/bin/buf generate
+          '')
+        ];
+
+        buildInputs = with pkgs; [ jdk21 buf gradle sqlc ];
 
         ANDROID_HOME = androidHome;
         JAVA_HOME = "${pkgs.jdk21}";

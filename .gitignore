@@ -21,3 +21,6 @@ local.properties
 
 # protobuf generated code
 app/src/main/java/dev/xhos/null_mobile/proto/
+
+.gradle-home
+
